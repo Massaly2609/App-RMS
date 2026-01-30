@@ -1,0 +1,946 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "RMS API Documentation",
+        "description": "API du Revenu Minimum Solidaire (RMS) : auth, portefeuille, file FIFO, rotations, timeline.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8000",
+            "description": "Serveur local de développement"
+        }
+    ],
+    "paths": {
+        "/api/auth/register": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Inscrire un nouveau membre RMS",
+                "operationId": "c7bb21a0d87049e161b8e4c9b0d909f2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "phone",
+                                    "first_name",
+                                    "last_name"
+                                ],
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+221770000001"
+                                    },
+                                    "first_name": {
+                                        "type": "string",
+                                        "example": "Fatou"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "example": "Diop"
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "example": "SN"
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "example": "Dakar"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Utilisateur créé avec état et wallet",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "example": "+221770000001"
+                                                        },
+                                                        "first_name": {
+                                                            "type": "string",
+                                                            "example": "Fatou"
+                                                        },
+                                                        "last_name": {
+                                                            "type": "string",
+                                                            "example": "Diop"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                }
+            }
+        },
+        "/api/auth/request-otp": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Demander un code OTP par SMS",
+                "operationId": "10dbaf9fdc7345c44ec7c44e73d10b35",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "phone"
+                                ],
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+221770000001"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP généré et (simulé) envoyé"
+                    },
+                    "429": {
+                        "description": "Trop de demandes d'OTP pour ce numéro"
+                    }
+                }
+            }
+        },
+        "/api/auth/verify-otp": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Vérifier un code OTP et se connecter",
+                "operationId": "abcb5741589707b15c7ecac7a67c13aa",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "phone",
+                                    "code"
+                                ],
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+221770000001"
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP valide, utilisateur connecté"
+                    },
+                    "400": {
+                        "description": "OTP invalide ou expiré"
+                    }
+                }
+            }
+        },
+        "/api/notifications": {
+            "get": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Lister les notifications de l'utilisateur",
+                "operationId": "8ad582a11169ade716521701fb684c82",
+                "responses": {
+                    "200": {
+                        "description": "Liste des notifications"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/notifications/mark-as-read": {
+            "post": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Marquer des notifications comme lues",
+                "operationId": "969842f2d83bbc00ced7966269572d8d",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "uuid-1",
+                                            "uuid-2"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Notifications mises à jour"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/queue/position": {
+            "get": {
+                "tags": [
+                    "Queue"
+                ],
+                "summary": "Obtenir la position d'un membre dans la file FIFO",
+                "operationId": "b81da9c32e0467e0d0244d82957019d1",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "description": "ID de l'utilisateur",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Position retournée"
+                    },
+                    "404": {
+                        "description": "Utilisateur ou entrée de file introuvable"
+                    }
+                }
+            }
+        },
+        "/api/admin/rotations/run-once": {
+            "post": {
+                "tags": [
+                    "Admin - Rotations"
+                ],
+                "summary": "Déclenche une rotation RMS unique",
+                "description": "Exécute une seule rotation : sélectionne un membre éligible (remboursé-éligible ou premier de la file FIFO), crédite son gain de 100 000 FCFA et met à jour les historiques.",
+                "operationId": "adminRunSingleRotation",
+                "responses": {
+                    "201": {
+                        "description": "Rotation exécutée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "rotation_id": {
+                                                    "type": "integer"
+                                                },
+                                                "user_id": {
+                                                    "type": "integer"
+                                                },
+                                                "amount": {
+                                                    "type": "integer"
+                                                },
+                                                "source": {
+                                                    "description": "Source des fonds (ex: jackpot)",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "Rotation exécutée avec succès.",
+                                    "data": {
+                                        "rotation_id": 1,
+                                        "user_id": 3,
+                                        "amount": 100000,
+                                        "source": "jackpot"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Aucune rotation possible pour le momKent",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "success": false,
+                                    "message": "Aucune rotation possible pour le moment (cagnotte ou candidats insuffisants)."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/timeline/posts/{post}/comments": {
+            "get": {
+                "tags": [
+                    "Timeline > Commentaires"
+                ],
+                "summary": "Lister les commentaires d'un post",
+                "operationId": "f3a51c6a1e8444a25c3346dcaa5c57ae",
+                "parameters": [
+                    {
+                        "name": "post",
+                        "in": "path",
+                        "description": "ID du post",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des commentaires",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "timeline_post_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "user_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "content": {
+                                                        "type": "string"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "datetime"
+                                                    },
+                                                    "user": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Timeline > Commentaires"
+                ],
+                "summary": "Ajouter un commentaire à un post",
+                "operationId": "3930fe26799c1a9acabf7d251ce8430d",
+                "parameters": [
+                    {
+                        "name": "post",
+                        "in": "path",
+                        "description": "ID du post",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "content"
+                                ],
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "maxLength": 2000,
+                                        "example": "Super témoignage !"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Commentaire créé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "content": {
+                                                    "type": "string"
+                                                },
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/timeline/posts/{post}/comments/{comment}": {
+            "patch": {
+                "tags": [
+                    "Timeline > Commentaires"
+                ],
+                "summary": "Modifier un commentaire (propriétaire uniquement)",
+                "operationId": "a957f79b87ea56de1844c64ff6bfeb0e",
+                "parameters": [
+                    {
+                        "name": "post",
+                        "in": "path",
+                        "description": "ID du post",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "comment",
+                        "in": "path",
+                        "description": "ID du commentaire",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "content"
+                                ],
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "maxLength": 2000,
+                                        "example": "Super témoignage corrigé !"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Commentaire modifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "content": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Non autorisé"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/timeline/posts": {
+            "get": {
+                "tags": [
+                    "Timeline"
+                ],
+                "summary": "Lister les posts de la timeline (feed paginé)",
+                "operationId": "ec21f6d06620cdbd195fd0ba084d380f",
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Filtrer par type de post",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des posts"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Timeline"
+                ],
+                "summary": "Créer un post dans la timeline",
+                "operationId": "d9162c35234ef034f6cc044ba201f025",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "content"
+                                ],
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "example": "Grâce au RMS, j'ai lancé mon petit commerce."
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "example": "text"
+                                    },
+                                    "media_url": {
+                                        "type": "string",
+                                        "example": "https://example.com/photo.jpg"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Post créé"
+                    },
+                    "400": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/timeline/posts/{post}/like": {
+            "post": {
+                "tags": [
+                    "Timeline"
+                ],
+                "summary": "Liker ou déliker un post",
+                "operationId": "87da051eae463a27f460c6dac44a535f",
+                "parameters": [
+                    {
+                        "name": "post",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Like togglé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/timeline/posts/{post}/comment": {
+            "post": {
+                "tags": [
+                    "Timeline"
+                ],
+                "summary": "Ajouter un commentaire sur un post",
+                "operationId": "636e222c2c474c14ac9f50658f92a315",
+                "parameters": [
+                    {
+                        "name": "post",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "comment"
+                                ],
+                                "properties": {
+                                    "comment": {
+                                        "type": "string",
+                                        "example": "Bravo pour ta réussite !"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Commentaire créé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/wallet/adhesion": {
+            "post": {
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Payer l'adhésion (simulation) et entrer dans la file FIFO",
+                "operationId": "2aacf27e3a065c31f79b32c5416248b8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Adhésion enregistrée, entrée dans la file"
+                    },
+                    "400": {
+                        "description": "Utilisateur non éligible ou déjà en file"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/wallet/remboursement": {
+            "post": {
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Payer une tranche de remboursement (simulation)",
+                "operationId": "b8d31152e3ed3a573515f3cb0607d4a4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "amount"
+                                ],
+                                "properties": {
+                                    "amount": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 20000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Remboursement enregistré"
+                    },
+                    "400": {
+                        "description": "Erreur métier"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/wallet/repayment": {
+            "get": {
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Remboursement RMS en cours",
+                "operationId": "5ec6ddd7257ba29e9ca67dc8f6f306a7",
+                "responses": {
+                    "200": {
+                        "description": "Infos remboursement (ou null)"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/wallet": {
+            "get": {
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "État du wallet + 10 dernières transactions",
+                "operationId": "c46516e6ae316194282761be57b0a915",
+                "responses": {
+                    "200": {
+                        "description": "Wallet info",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "balance": {
+                                            "type": "number",
+                                            "example": 150000
+                                        },
+                                        "currency": {
+                                            "type": "string",
+                                            "example": "XOF"
+                                        },
+                                        "transactions": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "type": {
+                                                        "type": "string"
+                                                    },
+                                                    "amount": {
+                                                        "type": "number"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Auth"
+        },
+        {
+            "name": "Notifications",
+            "description": "Notifications"
+        },
+        {
+            "name": "Queue",
+            "description": "Queue"
+        },
+        {
+            "name": "Admin - Rotations",
+            "description": "Admin - Rotations"
+        },
+        {
+            "name": "Timeline > Commentaires",
+            "description": "Timeline > Commentaires"
+        },
+        {
+            "name": "Timeline",
+            "description": "Timeline"
+        },
+        {
+            "name": "Wallet",
+            "description": "Wallet"
+        }
+    ]
+}
