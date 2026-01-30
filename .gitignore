@@ -1,0 +1,8 @@
+# Backend
+rms-backend/vendor/
+rms-backend/.env
+
+# Frontend
+rms-frontend/node_modules/
+rms-frontend/.env
+rms-frontend/build/
